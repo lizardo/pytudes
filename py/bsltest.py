@@ -38,7 +38,9 @@ bsl_tests = [
     #not, =, <, >, string=?, string<?, cons, first, rest, empty?, cons?
 
     # Forming Definitions
-    ('(define x 3)', None), ('x', 3), ('(+ x x)', 6),
+    ('(define x 3)', None),
+    ('x', 3),
+    ('(+ x x)', 6),
     # TODO
     #(define (bulb c)              ;defines a function named bulb, with parameter c
     #  (circle 30 "solid" c))      ;this is the body of the function
@@ -56,7 +58,8 @@ bsl_tests = [
             [else "same"])', 'less'),
     ('(and (< 0 x) (>= x 10))', False),
     ('(or (< x 0) (> x 10))', False),
-    ]
+]
+
 
 def test(tests, name=''):
     "For each (exp, expected) test case, see if eval(parse(exp)) == expected."
@@ -68,11 +71,14 @@ def test(tests, name=''):
             ok = (result == expected)
         except Exception as e:
             print(x, '=raises=>', type(e).__name__, e)
-            ok = isinstance(expected, type) and issubclass(expected, Exception) and isinstance(e, expected)
+            ok = isinstance(expected, type) and \
+                issubclass(expected, Exception) and isinstance(e, expected)
         if not ok:
             fails += 1
             print('FAIL!!!  Expected', expected)
-    print('%s %s: %d out of %d tests fail.' % ('*'*45, name, fails, len(tests)))
+    print('%s %s: %d out of %d tests fail.' %
+          ('*' * 45, name, fails, len(tests)))
+
 
 if __name__ == '__main__':
     from bsl import *
