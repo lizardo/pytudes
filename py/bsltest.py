@@ -19,8 +19,9 @@ bsl_tests = [
     ('true', True),
     ('false', False),
 
-    ## Compound data
-    ('(make-person "Claude" "Monet")', ('Claude', 'Monet')),
+    ## Compound data (TODO)
+    #(define-struct person (first-name last-name))
+    #('(make-person "Claude" "Monet")', ('Claude', 'Monet')),
 
     ## Lists
     ('empty', []),
@@ -56,8 +57,13 @@ bsl_tests = [
     ('(cond [(> x 4) "more"]\
             [(< x 4) "less"]\
             [else "same"])', 'less'),
+    ('(cond [(> x 3) "more"]\
+            [(< x 3) "less"]\
+            [else "same"])', 'same'),
+    ('(cond [(> x 2) "more"])', 'more'),
     ('(and (< 0 x) (>= x 10))', False),
     ('(or (< x 0) (> x 10))', False),
+    ('(or (< x 0) (> x 2))', True),
 ]
 
 

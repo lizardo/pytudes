@@ -52,7 +52,7 @@ eof_object = Symbol('#<eof-object>')  # Note: uninterned; can't be read
 
 class InPort:
     "An input port. Retains a line of chars."
-    tokenizer = r"""\s*(,@|[('`,)]|"(?:[\\].|[^\\"])*"|;.*|[^\s('"`,;)]*)(.*)"""
+    tokenizer = r"""\s*(,@|[][('`,)]|"(?:[\\].|[^\\"])*"|;.*|[^][\s('"`,;)]*)(.*)"""
 
     def __init__(self, file):
         self.file = file
@@ -83,16 +83,16 @@ def read(inport):
     "Read a Scheme expression from an input port."
 
     def read_ahead(token):
-        if '(' == token:
+        if token in ['(', '[']:
             L = []
             while True:
                 token = inport.next_token()
-                if token == ')':
+                if token in [')', ']']:
                     return L
                 else:
                     L.append(read_ahead(token))
-        elif ')' == token:
-            raise SyntaxError('unexpected )')
+        elif token in [')', ']']:
+            raise SyntaxError('unexpected {}'.format(token))
         elif token in quotes:
             return [quotes[token], read(inport)]
         elif token is eof_object:
@@ -109,13 +109,27 @@ quotes = {"'": _quote, "`": _quasiquote, ",": _unquote, ",@": _unquotesplicing}
 
 
 def atom(token):
-    'Numbers become numbers; #t and #f are booleans; "..." string; otherwise Symbol.'
-    if token == '#t':
+    """Numbers and #i... become numbers; #t/true and #f/false are booleans;
+    "..." string; empty is '(); otherwise Symbol."""
+    if token in ['#t', 'true']:
         return True
-    elif token == '#f':
+    elif token in ['#f', 'false']:
         return False
     elif token[0] == '"':
         return token[1:-1]
+    elif token == 'empty':
+        return [_quote, []]
+    elif token[:2] == '#i':
+        token = token[2:]
+    elif len(token.split('/')) == 2:
+        try:
+            return [
+                Sym('/'),
+                int(token.split('/')[0]),
+                int(token.split('/')[1])
+            ]
+        except ValueError:
+            return Sym(token)
     try:
         return int(token)
     except ValueError:
@@ -415,7 +429,7 @@ def require(x, predicate, msg="wrong length"):
         raise SyntaxError(to_string(x) + ': ' + msg)
 
 
-_append, _cons, _let = map(Sym, "append cons let".split())
+_append, _cond, _cons, _let = map(Sym, "append cond cons let".split())
 
 
 def expand_quasiquote(x):
@@ -448,7 +462,15 @@ def let(*args):
         map(expand, vals))
 
 
-macro_table = {_let: let}  ## More macros can go here
+def cond(*args):
+    if not args:
+        return False
+    if args[0][0] == 'else':
+        return args[0][1]
+    return [_if, args[0][0], args[0][1], cond(*args[1:])]
+
+
+macro_table = {_cond: cond, _let: let}  ## More macros can go here
 
 eval(
     parse("""(begin
@@ -457,6 +479,11 @@ eval(
    (if (null? args) #t
        (if (= (length args) 1) (car args)
            `(if ,(car args) (and ,@(cdr args)) #f)))))
+
+(define-macro or (lambda args
+    (if (null? args) #f
+        (if (= (length args) 1) (car args)
+            `(if ,(car args) #t (or ,@(cdr args)))))))
 
 ;; More macros can also go here
 
